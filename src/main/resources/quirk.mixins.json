@@ -1,11 +1,11 @@
 {
   "required": true,
-  "minVersion": "0.8",
-  "package": "quirk.mixins",
+  "package": "quirk.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
   ],
   "client": [
+    "QuirkMixin"
   ],
   "injectors": {
     "defaultRequire": 1
