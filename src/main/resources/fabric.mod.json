@@ -1,28 +1,29 @@
 {
   "schemaVersion": 1,
-  "id": "lowercase",
+  "id": "quirk",
   "version": "${version}",
 
-  "name": "LOWERCASE Client",
-  "description": "i have no idea what i'm doing",
+  "name": "Quirk",
+  "description": "i have no clue what im doing",
   "authors": [
-    "LC"
+    "LOWERCASE"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "placeholder 1",
+    "sources": "placeholder 2"
   },
 
   "license": "CC0-1.0",
-  "icon": "assets/lowercase/icon.png",
+  "icon": "assets/quirk/icon.png",
 
   "environment": "*",
   "entrypoints": {
     "main": [
-      "lowercase.client.Client"
+      "quirk.Quirk"
     ]
   },
   "mixins": [
+    "quirk.mixins.json"
   ],
 
   "depends": {
