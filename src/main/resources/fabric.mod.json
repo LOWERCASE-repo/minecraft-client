@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "lowercase",
+  "version": "${version}",
+
+  "name": "LOWERCASE Client",
+  "description": "i have no idea what i'm doing",
+  "authors": [
+    "LC"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+
+  "license": "CC0-1.0",
+  "icon": "assets/lowercase/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "lowercase.client.Client"
+    ]
+  },
+  "mixins": [
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.7.4",
+    "fabric": "*",
+    "minecraft": "1.16.x"
+  },
+  "suggests": {
+    "flamingo": "*"
+  }
+}
