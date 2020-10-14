@@ -9,6 +9,7 @@ import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.block.BlockModelRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
@@ -138,7 +139,6 @@ public class Quirk implements ModInitializer {
 
     void packetLand() {
         if (client.player.fallDistance <= (client.player.isFallFlying() ? 1f : 2f)) return;
-        if (client.player.isFallFlying() && client.options.keySneak.isPressed() && client.player.getVelocity().y < -0.5) return;
         client.player.networkHandler.sendPacket(new PlayerMoveC2SPacket(true));
     }
 
