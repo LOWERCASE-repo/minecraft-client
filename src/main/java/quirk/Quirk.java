@@ -12,7 +12,9 @@ import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.block.BlockModelRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.mob.Monster;
+import net.minecraft.entity.mob.SkeletonEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.item.*;
 import net.minecraft.network.Packet;
@@ -69,7 +71,7 @@ public class Quirk implements ModInitializer {
             client.options.keySprint.setPressed(true);
         }
 
-        oreScan();
+        itemScan();
         packetLand();
 
         Runnable input = inputQueue.poll();
@@ -130,11 +132,8 @@ public class Quirk implements ModInitializer {
         }
     }
 
-    void oreScan() {
-        for (BlockEntity block : client.world.blockEntities) {
-            if (block instanceof ChestBlockEntity) {
-            }
-        }
+    void itemScan() {
+        for (Entity entity : client.world.getEntities()) if (entity instanceof ItemEntity) entity.setGlowing(true);
     }
 
     void packetLand() {
