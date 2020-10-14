@@ -10,6 +10,8 @@ import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.item.*;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
@@ -24,6 +26,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.function.Predicate;
 
 public class Quirk implements ModInitializer {
 
@@ -53,7 +56,8 @@ public class Quirk implements ModInitializer {
         // auto equip
         if (client.options.keyAttack.isPressed()) {
             if (client.interactionManager.isBreakingBlock()) {
-                equipTool();
+                BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
+                if (!equip(item -> item.getMiningSpeedMultiplier(state) > 1f)) equip(0);
             } else if (client.crosshairTarget instanceof EntityHitResult) {
                 equipWeapon();
                 targets.add(((EntityHitResult) client.crosshairTarget).getEntity());
@@ -61,7 +65,7 @@ public class Quirk implements ModInitializer {
         }
 
         // full auto
-        attack();
+        evalTarget();
         client.options.keySprint.setPressed(true);
     }
 
@@ -74,50 +78,42 @@ public class Quirk implements ModInitializer {
         Vec3d fishPos = client.player.fishHook.getPos();
         inputLock = true;
         press(client.options.keyUse);
-        wait(1 + (int)client.player.getPos().distanceTo(fishPos));
+        wait(2 + (int)client.player.getPos().distanceTo(fishPos));
         press(client.options.keyUse);
         inputQueue.add(() -> inputLock = false);
     }
 
-    boolean equip(Class<?> type) {
+    boolean equip(Predicate<ItemStack> eval) {
         for (int i = 0; i < 9; i++) {
-            Item item = client.player.inventory.getStack(i).getItem();
-            if (item.getClass() == type) {
-                equipSlot(i);
+            ItemStack item = client.player.inventory.getStack(i);
+            if (eval.test(item)) {
+                equip(i);
                 return true;
             }
         }
         return false;
     }
 
-    void equipSlot(int slot) {
-        if (client.player.inventory.selectedSlot != slot) press(client.options.keysHotbar[slot]);
+    void equip(int slot) {
+        if (client.player.inventory.selectedSlot != slot) {
+            inputLock = true;
+            press(client.options.keysHotbar[slot]);
+            inputQueue.add(() -> inputLock = false);
+        }
     }
 
     void equipWeapon() {
-        if (equip(TridentItem.class)) return;
-        if (equip(SwordItem.class)) return;
-        if (equip(AxeItem.class)) return;
-        equipSlot(0);
+        if (equip(item -> item.getItem() instanceof TridentItem)) return;
+        if (equip(item -> item.getItem() instanceof SwordItem)) return;
+        if (equip(item -> item.getItem() instanceof AxeItem)) return;
+        equip(0);
     }
 
-    void equipTool() {
-        for (int i = 0; i < 9; i++) {
-            ItemStack item = client.player.inventory.getStack(i);
-            BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
-            if (item.getMiningSpeedMultiplier(state) > 1f) {
-                equipSlot(i);
-                return;
-            }
-        }
-        equipSlot(0);
-    }
-
-    void attack() {
+    void evalTarget() {
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult) hit).getEntity();
-        if (!(entity instanceof Monster)) return;
+        if (!(entity instanceof Monster || entity instanceof AnimalEntity)) return;
         equipWeapon();
         if (client.player.getAttackCooldownProgress(0f) < 1f) return;
         inputLock = true;
