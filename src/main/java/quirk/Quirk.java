@@ -69,16 +69,8 @@ public class Quirk implements ModInitializer {
         return false;
     }
 
-    boolean unequip() {
-        if (!(client.player.inventory.getMainHandStack().getItem() instanceof ToolItem)) return true;
-        for (int i = 8; i >= 0; i--) {
-            Item item = client.player.inventory.getStack(i).getItem();
-            if (!(item instanceof ToolItem)) {
-                press(client.options.keysHotbar[i]);
-                return true;
-            }
-        }
-        return false;
+    void unequip() {
+        if (client.player.inventory.selectedSlot != 0) press(client.options.keysHotbar[0]);
     }
 
     void equipWeapon() {
@@ -89,12 +81,12 @@ public class Quirk implements ModInitializer {
     }
 
     void attack() {
-        if (client.player.getAttackCooldownProgress(0f) < 1f) return;
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult)hit).getEntity();
         if (!(entity instanceof Monster)) return;
         equipWeapon();
+        if (client.player.getAttackCooldownProgress(0f) < 1f) return;
         inputLock = true; // TODO hook attack cooldown
         press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
