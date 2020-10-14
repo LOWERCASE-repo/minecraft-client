@@ -5,14 +5,15 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.util.InputUtil;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.mob.Monster;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.EntityHitResult;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 
-import javax.swing.text.JTextComponent;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
 
@@ -25,7 +26,7 @@ public class Quirk implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        inputQueue = new LinkedTransferQueue<Runnable>();
+        inputQueue = new LinkedTransferQueue<>();
         System.out.println("mod initialized!!");
         self = this;
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
@@ -34,11 +35,11 @@ public class Quirk implements ModInitializer {
     public void tick(MinecraftClient client) {
         this.client = client;
         if (client.player == null) return;
-//        Hand hand = Hand.MAIN_HAND;
-//        System.out.println(client.crosshairTarget);
-        client.options.keySprint.setPressed(true);
         Runnable input = inputQueue.poll();
         if (input != null) input.run();
+        if (inputLock) return;
+        client.options.keySprint.setPressed(true);
+        attack();
     }
 
     public void parsePacket(Packet<?> packet) {
@@ -52,10 +53,20 @@ public class Quirk implements ModInitializer {
         rightClick();
         wait((int)client.player.getPos().distanceTo(fishPos));
         rightClick();
-        inputQueue.add(() -> client.options.keysHotbar[0].setPressed(true));
-        inputQueue.add(() -> client.options.keysHotbar[0].setPressed(false));
         inputQueue.add(() -> inputLock = false);
-        inputQueue.add(() -> equip(3));
+    }
+
+    void attack() {
+        HitResult hit = client.crosshairTarget;
+        if (!(hit instanceof EntityHitResult)) return;
+        Entity entity = ((EntityHitResult)hit).getEntity();
+        if (!(entity instanceof Monster)) return;
+        System.out.println(entity.getName());
+        inputLock = true;
+        inputQueue.add(() -> client.options.keyAttack.setPressed(true));
+        inputQueue.add(() -> KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(client.options.keyAttack.getBoundKeyTranslationKey())));
+        inputQueue.add(() -> client.options.keyAttack.setPressed(false));
+        inputQueue.add(() -> inputLock = false);
     }
 
     void rightClick() {
@@ -68,7 +79,7 @@ public class Quirk implements ModInitializer {
     }
 
     void equip(int slot) {
-        // TODO switch to Keyboard.onKey
+        // TODO handle all input with Keyboard.onKey for the ghost:tm:
         KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(client.options.keysHotbar[slot].getBoundKeyTranslationKey()));
     }
 }
