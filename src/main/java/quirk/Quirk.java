@@ -2,6 +2,8 @@ package quirk;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.block.AirBlock;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
@@ -18,6 +20,8 @@ import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
 
@@ -27,10 +31,12 @@ public class Quirk implements ModInitializer {
     MinecraftClient client;
     Queue<Runnable> inputQueue;
     boolean inputLock = false;
+    LinkedHashSet<Entity> targets;
 
     @Override
     public void onInitialize() {
         inputQueue = new LinkedTransferQueue<>();
+        targets = new LinkedHashSet<>();
         System.out.println("mod initialized!!");
         self = this;
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
@@ -39,13 +45,24 @@ public class Quirk implements ModInitializer {
     public void tick(MinecraftClient client) {
         this.client = client;
         if (client.player == null) return;
+
         Runnable input = inputQueue.poll();
         if (input != null) input.run();
         if (inputLock) return;
+
+        // auto equip
+        if (client.options.keyAttack.isPressed()) {
+            if (client.interactionManager.isBreakingBlock()) {
+                equipTool();
+            } else if (client.crosshairTarget instanceof EntityHitResult) {
+                equipWeapon();
+                targets.add(((EntityHitResult) client.crosshairTarget).getEntity());
+            }
+        }
+
+        // full auto
+        attack();
         client.options.keySprint.setPressed(true);
-        attack(); // TODO add a toggle
-        // TODO auto tool selection
-        equipTool();
     }
 
     public void parsePacket(Packet<?> packet) {
@@ -63,11 +80,10 @@ public class Quirk implements ModInitializer {
     }
 
     boolean equip(Class<?> type) {
-        if (client.player.inventory.getMainHandStack().getItem().getClass() == type) return true;
-        for (int i = 8; i >= 0; i--) {
+        for (int i = 0; i < 9; i++) {
             Item item = client.player.inventory.getStack(i).getItem();
             if (item.getClass() == type) {
-                press(client.options.keysHotbar[i]);
+                equipSlot(i);
                 return true;
             }
         }
@@ -85,35 +101,28 @@ public class Quirk implements ModInitializer {
         equipSlot(0);
     }
 
+    void equipTool() {
+        for (int i = 0; i < 9; i++) {
+            ItemStack item = client.player.inventory.getStack(i);
+            BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
+            if (item.getMiningSpeedMultiplier(state) > 1f) {
+                equipSlot(i);
+                return;
+            }
+        }
+        equipSlot(0);
+    }
+
     void attack() {
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
-        Entity entity = ((EntityHitResult)hit).getEntity();
+        Entity entity = ((EntityHitResult) hit).getEntity();
         if (!(entity instanceof Monster)) return;
         equipWeapon();
         if (client.player.getAttackCooldownProgress(0f) < 1f) return;
         inputLock = true;
         press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
-    }
-
-    void equipTool() {
-//        client.player.isFallFlying()
-//        client.player.fallDistance
-//        if (!client.interactionManager.isBreakingBlock()) return;
-        if (!(client.options.keyAttack.isPressed() && client.crosshairTarget instanceof BlockHitResult)) return;
-        int slot = -1;
-        for (int i = 8; i >= 0; i--) {
-            ItemStack item = client.player.inventory.getStack(i);
-            BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
-            System.out.println(item.getMiningSpeedMultiplier(state));
-            if (item.getMiningSpeedMultiplier(state) > 1f) {
-                slot = i;
-                break;
-            }
-        }
-        if (slot != -1) equipSlot(slot);
-        else equipSlot(0);
     }
 
     void wait(int ticks) {
