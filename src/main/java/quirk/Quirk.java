@@ -2,8 +2,6 @@ package quirk;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.block.AirBlock;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
@@ -11,19 +9,20 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.entity.passive.SheepEntity;
-import net.minecraft.item.*;
+import net.minecraft.item.AxeItem;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.TridentItem;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.function.Predicate;
@@ -48,9 +47,9 @@ public class Quirk implements ModInitializer {
     public void tick(MinecraftClient client) {
         this.client = client;
         if (client.player == null) return;
-
         Runnable input = inputQueue.poll();
         if (input != null) input.run();
+        targets.removeIf(Objects::isNull);
         if (inputLock) return;
 
         // auto equip
@@ -113,12 +112,14 @@ public class Quirk implements ModInitializer {
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult) hit).getEntity();
-        if (!(entity instanceof Monster || entity instanceof AnimalEntity)) return;
-        equipWeapon();
-        if (client.player.getAttackCooldownProgress(0f) < 1f) return;
-        inputLock = true;
-        press(client.options.keyAttack);
-        inputQueue.add(() -> inputLock = false);
+        if (entity instanceof Monster || entity instanceof AnimalEntity) equipWeapon();
+        boolean charging = client.player.getAttackCooldownProgress(0f) > 1f;
+        if (charging && client.player.getPos().distanceTo(entity.getPos()) > 1f) return;
+        if (targets.contains(entity) || entity instanceof Monster) {
+            inputLock = true;
+            press(client.options.keyAttack);
+            inputQueue.add(() -> inputLock = false);
+        }
     }
 
     void wait(int ticks) {
