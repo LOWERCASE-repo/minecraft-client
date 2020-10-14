@@ -2,6 +2,7 @@ package quirk;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.util.InputUtil;
@@ -11,8 +12,10 @@ import net.minecraft.item.*;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.Queue;
@@ -41,6 +44,8 @@ public class Quirk implements ModInitializer {
         if (inputLock) return;
         client.options.keySprint.setPressed(true);
         attack(); // TODO add a toggle
+        // TODO auto tool selection
+        equipTool();
     }
 
     public void parsePacket(Packet<?> packet) {
@@ -69,15 +74,15 @@ public class Quirk implements ModInitializer {
         return false;
     }
 
-    void unequip() {
-        if (client.player.inventory.selectedSlot != 0) press(client.options.keysHotbar[0]);
+    void equipSlot(int slot) {
+        if (client.player.inventory.selectedSlot != slot) press(client.options.keysHotbar[slot]);
     }
 
     void equipWeapon() {
         if (equip(TridentItem.class)) return;
         if (equip(SwordItem.class)) return;
         if (equip(AxeItem.class)) return;
-        unequip();
+        equipSlot(0);
     }
 
     void attack() {
@@ -87,9 +92,28 @@ public class Quirk implements ModInitializer {
         if (!(entity instanceof Monster)) return;
         equipWeapon();
         if (client.player.getAttackCooldownProgress(0f) < 1f) return;
-        inputLock = true; // TODO hook attack cooldown
+        inputLock = true;
         press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
+    }
+
+    void equipTool() {
+//        client.player.isFallFlying()
+//        client.player.fallDistance
+//        if (!client.interactionManager.isBreakingBlock()) return;
+        if (!(client.options.keyAttack.isPressed() && client.crosshairTarget instanceof BlockHitResult)) return;
+        int slot = -1;
+        for (int i = 8; i >= 0; i--) {
+            ItemStack item = client.player.inventory.getStack(i);
+            BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
+            System.out.println(item.getMiningSpeedMultiplier(state));
+            if (item.getMiningSpeedMultiplier(state) > 1f) {
+                slot = i;
+                break;
+            }
+        }
+        if (slot != -1) equipSlot(slot);
+        else equipSlot(0);
     }
 
     void wait(int ticks) {
