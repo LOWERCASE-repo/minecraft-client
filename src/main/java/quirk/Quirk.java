@@ -3,17 +3,19 @@ package quirk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.OreBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.block.entity.ChestBlockEntity;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.passive.AnimalEntity;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.SwordItem;
-import net.minecraft.item.TridentItem;
+import net.minecraft.item.*;
 import net.minecraft.network.Packet;
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
@@ -21,6 +23,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
 
+import javax.tools.Tool;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Queue;
@@ -47,31 +50,35 @@ public class Quirk implements ModInitializer {
     public void tick(MinecraftClient client) {
         this.client = client;
         if (client.player == null) return;
+
+        if (!inputLock) {
+            if (client.options.keyAttack.isPressed()) {
+                if (client.interactionManager.isBreakingBlock()) {
+                    BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
+                    if (!equip(item -> item.getMiningSpeedMultiplier(state) > 1f)) equip(0);
+                } else if (client.crosshairTarget instanceof EntityHitResult) {
+                    equipWeapon();
+                    targets.add(((EntityHitResult) client.crosshairTarget).getEntity());
+                }
+            } else if (client.options.keyUse.isPressed()) {
+                Item hand = client.player.inventory.getMainHandStack().getItem();
+                if (hand instanceof TridentItem || hand instanceof ToolItem) equip(item -> item.getItem() instanceof ShieldItem);
+            }
+            evalTarget();
+            client.options.keySprint.setPressed(true);
+        }
+
+        oreScan();
+        packetLand();
+
         Runnable input = inputQueue.poll();
         if (input != null) input.run();
         targets.removeIf(Objects::isNull);
-        if (inputLock) return;
-
-        // auto equip
-        if (client.options.keyAttack.isPressed()) {
-            if (client.interactionManager.isBreakingBlock()) {
-                BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
-                if (!equip(item -> item.getMiningSpeedMultiplier(state) > 1f)) equip(0);
-            } else if (client.crosshairTarget instanceof EntityHitResult) {
-                equipWeapon();
-                targets.add(((EntityHitResult) client.crosshairTarget).getEntity());
-            }
-        }
-
-        // full auto
-        evalTarget();
-        client.options.keySprint.setPressed(true);
     }
 
     public void parsePacket(Packet<?> packet) {
-        if (inputLock) return;
-        if (client.player.getMainHandStack() == null) return;
-        if (!(packet instanceof PlaySoundS2CPacket)) return;
+        if (inputLock || !(packet instanceof PlaySoundS2CPacket)) return;
+        if (!(client.player.getMainHandStack().getItem() instanceof FishingRodItem)) return;
         PlaySoundS2CPacket sound = (PlaySoundS2CPacket) packet;
         if (!SoundEvents.ENTITY_FISHING_BOBBER_SPLASH.equals(sound.getSound())) return;
         Vec3d fishPos = client.player.fishHook.getPos();
@@ -113,13 +120,26 @@ public class Quirk implements ModInitializer {
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult) hit).getEntity();
         if (entity instanceof Monster || entity instanceof AnimalEntity) equipWeapon();
-        boolean charging = client.player.getAttackCooldownProgress(0f) > 1f;
-        if (charging && client.player.getPos().distanceTo(entity.getPos()) > 1f) return;
+        boolean charging = client.player.getAttackCooldownProgress(0f) < 1f;
+        if (charging && client.player.getPos().distanceTo(entity.getPos()) > 2f) return;
         if (targets.contains(entity) || entity instanceof Monster) {
             inputLock = true;
             press(client.options.keyAttack);
             inputQueue.add(() -> inputLock = false);
         }
+    }
+
+    void oreScan() {
+        for (BlockEntity block : client.world.blockEntities) {
+            if (block instanceof ChestBlockEntity) {
+            }
+        }
+    }
+
+    void packetLand() {
+        if (client.player.fallDistance <= (client.player.isFallFlying() ? 1f : 2f)) return;
+        if (client.player.isFallFlying() && client.options.keySneak.isPressed() && client.player.getVelocity().y < -0.5) return;
+        client.player.networkHandler.sendPacket(new PlayerMoveC2SPacket(true));
     }
 
     void wait(int ticks) {

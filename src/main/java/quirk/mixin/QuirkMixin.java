@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public class QuirkMixin {
 
     @Inject(method = "onPlaySound", at = @At("HEAD"))
-    public void onPlaySound(PlaySoundS2CPacket playSoundS2CPacket_1, CallbackInfo ci) {
+    void onPlaySound(PlaySoundS2CPacket playSoundS2CPacket_1, CallbackInfo callback) {
         quirk.Quirk.self.parsePacket(playSoundS2CPacket_1);
     }
 }
