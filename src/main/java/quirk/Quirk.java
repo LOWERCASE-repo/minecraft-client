@@ -3,15 +3,19 @@ package quirk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.OreBlock;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.ChestBlockEntity;
+import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.render.Tessellator;
 import net.minecraft.client.render.block.BlockModelRenderer;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EyeOfEnderEntity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.mob.Monster;
 import net.minecraft.entity.mob.SkeletonEntity;
@@ -24,9 +28,11 @@ import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import javax.tools.Tool;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Queue;
@@ -40,11 +46,15 @@ public class Quirk implements ModInitializer {
     Queue<Runnable> inputQueue;
     boolean inputLock = false;
     LinkedHashSet<Entity> targets;
+    LinkedHashSet<BlockEntity> removedChests;
+    HashMap<BlockEntity, Integer> chests;
 
     @Override
     public void onInitialize() {
         inputQueue = new LinkedTransferQueue<>();
         targets = new LinkedHashSet<>();
+        removedChests = new LinkedHashSet<>();
+        chests = new HashMap<>();
         System.out.println("mod initialized!!");
         self = this;
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
@@ -72,11 +82,20 @@ public class Quirk implements ModInitializer {
         }
 
         itemScan();
+        oreScan();
         packetLand();
 
         Runnable input = inputQueue.poll();
         if (input != null) input.run();
         targets.removeIf(Objects::isNull);
+        for (BlockEntity block : chests.keySet()) {
+            if (block.isRemoved()) {
+                client.world.removeEntity(chests.get(block));
+                removedChests.add(block);
+            }
+        }
+        for (BlockEntity block : removedChests) chests.remove(block);
+        removedChests.clear();
     }
 
     public void parsePacket(Packet<?> packet) {
@@ -133,7 +152,25 @@ public class Quirk implements ModInitializer {
     }
 
     void itemScan() {
-        for (Entity entity : client.world.getEntities()) if (entity instanceof ItemEntity) entity.setGlowing(true);
+        for (Entity entity : client.world.getEntities()) {
+            if (entity instanceof ItemEntity || entity instanceof ClientPlayerEntity) entity.setGlowing(true);
+        }
+    }
+
+    void oreScan() {
+        for (BlockEntity block : client.world.blockEntities) {
+            if (!chests.containsKey(block) && block instanceof LootableContainerBlockEntity) {
+                for (BlockEntity block1 : chests.keySet()) {
+                    System.out.println(block1.isRemoved());
+                }
+                BlockPos pos = block.getPos();
+                EyeOfEnderEntity eye = new EyeOfEnderEntity(client.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
+                int id = Objects.hash(pos.getX(), pos.getY(), pos.getZ());
+                eye.setGlowing(true);
+                client.world.addEntity(id, eye);
+                chests.put(block, id);
+            }
+        }
     }
 
     void packetLand() {
