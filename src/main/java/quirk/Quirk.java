@@ -50,10 +50,14 @@ public class Quirk implements ModInitializer {
         if (!SoundEvents.ENTITY_FISHING_BOBBER_SPLASH.equals(sound.getSound())) return;
         Vec3d fishPos = client.player.fishHook.getPos();
         inputLock = true;
-        rightClick();
-        wait((int)client.player.getPos().distanceTo(fishPos));
-        rightClick();
+        press(client.options.keyUse);
+        wait(1 + (int)client.player.getPos().distanceTo(fishPos));
+        press(client.options.keyUse);
         inputQueue.add(() -> inputLock = false);
+    }
+
+    void equipWeapon() {
+        
     }
 
     void attack() {
@@ -63,23 +67,20 @@ public class Quirk implements ModInitializer {
         if (!(entity instanceof Monster)) return;
         System.out.println(entity.getName());
         inputLock = true;
-        inputQueue.add(() -> client.options.keyAttack.setPressed(true));
-        inputQueue.add(() -> KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(client.options.keyAttack.getBoundKeyTranslationKey())));
-        inputQueue.add(() -> client.options.keyAttack.setPressed(false));
+        press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
-    }
-
-    void rightClick() {
-        inputQueue.add(() -> client.options.keyUse.setPressed(true));
-        inputQueue.add(() -> client.options.keyUse.setPressed(false));
     }
 
     void wait(int ticks) {
         for (int i = 0; i < ticks; i++) inputQueue.add(() -> {});
     }
 
-    void equip(int slot) {
-        // TODO handle all input with Keyboard.onKey for the ghost:tm:
-        KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(client.options.keysHotbar[slot].getBoundKeyTranslationKey()));
+    void press(KeyBinding key) {
+        InputUtil.Key utilKey = InputUtil.fromTranslationKey(key.getBoundKeyTranslationKey());
+        inputQueue.add(() -> {
+            KeyBinding.setKeyPressed(utilKey, true);
+            KeyBinding.onKeyPressed(utilKey);
+        });
+        inputQueue.add(() -> KeyBinding.setKeyPressed(utilKey, false));
     }
 }

@@ -10,8 +10,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(ClientPlayNetworkHandler.class)
 public class QuirkMixin {
 
-//    @Shadow private MinecraftClient client;
-
     @Inject(method = "onPlaySound", at = @At("HEAD"))
     public void onPlaySound(PlaySoundS2CPacket playSoundS2CPacket_1, CallbackInfo ci) {
         quirk.Quirk.self.parsePacket(playSoundS2CPacket_1);
