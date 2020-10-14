@@ -7,6 +7,10 @@ import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
+import net.minecraft.item.AxeItem;
+import net.minecraft.item.Item;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.TridentItem;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
@@ -57,7 +61,16 @@ public class Quirk implements ModInitializer {
     }
 
     void equipWeapon() {
-        
+        int axeSlot = -1;
+        for (int i = 0; i < 9; i++) {
+            if (client.player.inventory.getStack(i).isEmpty()) continue;
+            Item item = client.player.inventory.getStack(i).getItem();
+            if (item instanceof SwordItem || item instanceof TridentItem) {
+                if (i != client.player.inventory.selectedSlot) press(client.options.keysHotbar[i]);
+                return;
+            } else if (item instanceof AxeItem) axeSlot = i;
+        }
+        if (axeSlot != -1 && axeSlot != client.player.inventory.selectedSlot) press(client.options.keysHotbar[axeSlot]);
     }
 
     void attack() {
@@ -65,7 +78,7 @@ public class Quirk implements ModInitializer {
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult)hit).getEntity();
         if (!(entity instanceof Monster)) return;
-        System.out.println(entity.getName());
+        equipWeapon();
         inputLock = true;
         press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
