@@ -7,10 +7,7 @@ import net.minecraft.client.options.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.mob.Monster;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.SwordItem;
-import net.minecraft.item.TridentItem;
+import net.minecraft.item.*;
 import net.minecraft.network.Packet;
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
 import net.minecraft.sound.SoundEvents;
@@ -43,7 +40,7 @@ public class Quirk implements ModInitializer {
         if (input != null) input.run();
         if (inputLock) return;
         client.options.keySprint.setPressed(true);
-        attack();
+        attack(); // TODO add a toggle
     }
 
     public void parsePacket(Packet<?> packet) {
@@ -60,26 +57,45 @@ public class Quirk implements ModInitializer {
         inputQueue.add(() -> inputLock = false);
     }
 
-    void equipWeapon() {
-        int axeSlot = -1;
-        for (int i = 0; i < 9; i++) {
-            if (client.player.inventory.getStack(i).isEmpty()) continue;
+    boolean equip(Class<?> type) {
+        if (client.player.inventory.getMainHandStack().getItem().getClass() == type) return true;
+        for (int i = 8; i >= 0; i--) {
             Item item = client.player.inventory.getStack(i).getItem();
-            if (item instanceof SwordItem || item instanceof TridentItem) {
-                if (i != client.player.inventory.selectedSlot) press(client.options.keysHotbar[i]);
-                return;
-            } else if (item instanceof AxeItem) axeSlot = i;
+            if (item.getClass() == type) {
+                press(client.options.keysHotbar[i]);
+                return true;
+            }
         }
-        if (axeSlot != -1 && axeSlot != client.player.inventory.selectedSlot) press(client.options.keysHotbar[axeSlot]);
+        return false;
+    }
+
+    boolean unequip() {
+        if (!(client.player.inventory.getMainHandStack().getItem() instanceof ToolItem)) return true;
+        for (int i = 8; i >= 0; i--) {
+            Item item = client.player.inventory.getStack(i).getItem();
+            if (!(item instanceof ToolItem)) {
+                press(client.options.keysHotbar[i]);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void equipWeapon() {
+        if (equip(TridentItem.class)) return;
+        if (equip(SwordItem.class)) return;
+        if (equip(AxeItem.class)) return;
+        unequip();
     }
 
     void attack() {
+        if (client.player.getAttackCooldownProgress(0f) < 1f) return;
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult)hit).getEntity();
         if (!(entity instanceof Monster)) return;
         equipWeapon();
-        inputLock = true;
+        inputLock = true; // TODO hook attack cooldown
         press(client.options.keyAttack);
         inputQueue.add(() -> inputLock = false);
     }
