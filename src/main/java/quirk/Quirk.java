@@ -42,15 +42,15 @@ import java.util.function.Predicate;
 
 public class Quirk implements ModInitializer {
 
+    // TODO maintainability cap reached!! break into classes
+
     public static Quirk self;
     MinecraftClient client;
     Queue<Runnable> inputQueue;
-    boolean inputLock = false, eating = false;
+    boolean inputLock = false;
     LinkedHashSet<Entity> targets; // TODO check behaviour when killed and unloaded, maybe swap map
     LinkedHashSet<BlockEntity> removedChests;
     HashMap<BlockEntity, Integer> chests;
-
-    // TODO if velocity is zero and no keys are pressed, eat
 
     @Override
     public void onInitialize() {
@@ -67,10 +67,13 @@ public class Quirk implements ModInitializer {
         this.client = client;
         if (client.player == null) return;
 
-        if (client.options.keyAttack.isPressed() || moving()) {
-            eating = false;
-            client.options.keyUse.setPressed(false);
-        }
+        /*
+        if !Input.locked
+            protection.update
+            detection.update
+            destruction.update
+
+         */
 
         if (!inputLock) {
             if (client.options.keyAttack.isPressed()) {
@@ -84,14 +87,12 @@ public class Quirk implements ModInitializer {
             } else if (client.options.keyUse.isPressed()) {
                 Item hand = client.player.inventory.getMainHandStack().getItem();
                 if (hand instanceof TridentItem || hand instanceof ToolItem) equip(item -> item.getItem() instanceof ShieldItem);
-            } else if (!eating && client.player.canConsume(false) && !moving()) {
-                eat();
             }
             evalTarget();
             client.options.keySprint.setPressed(true);
         }
 
-        itemScan();
+        entityScan();
         chestScan();
         packetLand();
 
@@ -108,16 +109,15 @@ public class Quirk implements ModInitializer {
         removedChests.clear();
     }
 
-    public void parsePacket(Packet<?> packet) {
-        if (inputLock || !(packet instanceof PlaySoundS2CPacket)) return;
+    public void parsePacket(PlaySoundS2CPacket packet) {
+        if (inputLock) return;
         if (!(client.player.getMainHandStack().getItem() instanceof FishingRodItem)) return;
-        PlaySoundS2CPacket sound = (PlaySoundS2CPacket) packet;
-        if (!SoundEvents.ENTITY_FISHING_BOBBER_SPLASH.equals(sound.getSound())) return;
+        if (!SoundEvents.ENTITY_FISHING_BOBBER_SPLASH.equals(packet.getSound())) return;
         Vec3d fishPos = client.player.fishHook.getPos();
         inputLock = true;
         equip(item -> item.getItem() instanceof FishingRodItem);
         press(client.options.keyUse);
-        wait(2 + (int)client.player.getPos().distanceTo(fishPos));
+        wait(5 + (int) client.player.getPos().distanceTo(fishPos));
         press(client.options.keyUse);
         inputQueue.add(() -> inputLock = false);
     }
@@ -133,26 +133,11 @@ public class Quirk implements ModInitializer {
         return false;
     }
 
-    void equip(int slot) {
-        if (client.player.inventory.selectedSlot != slot) {
-            inputLock = true;
-            press(client.options.keysHotbar[slot]);
-            inputQueue.add(() -> inputLock = false);
-        }
-    }
-
-    void equipWeapon() {
-        if (equip(item -> item.getItem() instanceof TridentItem)) return;
-        if (equip(item -> item.getItem() instanceof SwordItem)) return;
-        if (equip(item -> item.getItem() instanceof AxeItem)) return;
-        equip(0);
-    }
-
     void evalTarget() {
         HitResult hit = client.crosshairTarget;
         if (!(hit instanceof EntityHitResult)) return;
         Entity entity = ((EntityHitResult) hit).getEntity();
-        if (entity instanceof Monster || entity instanceof AnimalEntity) equipWeapon();
+        if (targets.contains(entity) || entity instanceof Monster) equipWeapon();
         boolean charging = client.player.getAttackCooldownProgress(0f) < 1f;
         if (charging && client.player.getPos().distanceTo(entity.getPos()) > 2f) return;
         if (targets.contains(entity) || entity instanceof Monster) {
@@ -162,40 +147,13 @@ public class Quirk implements ModInitializer {
         }
     }
 
-    boolean cursorFree() {
-        if (client.crosshairTarget instanceof EntityHitResult) {
-            Entity entity = ((EntityHitResult) client.crosshairTarget).getEntity();
-            return !(entity instanceof MerchantEntity || entity instanceof AnimalEntity);
-        } else if (client.crosshairTarget instanceof BlockHitResult) {
-            Block block = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos()).getBlock();
-            return !(block instanceof BlockWithEntity || block instanceof CraftingTableBlock);
-        } else return true;
-    }
-
-    boolean moving() {
-        return client.player.forwardSpeed == 0f && client.player.sidewaysSpeed == 0f;
-    }
-
-    void eat() {
-        if (eating || !cursorFree()) return;
-        boolean foundFood = equip(item -> {
-            if (!item.isFood()) return false;
-            FoodComponent food = item.getItem().getFoodComponent();
-            for (Pair<StatusEffectInstance, Float> status : food.getStatusEffects()) {
-                StatusEffect effect = status.getFirst().getEffectType();
-                if (effect == StatusEffects.POISON || effect == StatusEffects.HUNGER || effect == StatusEffects.REGENERATION) return false;
-            }
-            return true;
-        });
-        if (!foundFood) return;
-        press(client.options.keyUse);
-        inputQueue.poll();
-        eating = true;
-    }
-
-    void itemScan() {
+    void entityScan() {
         for (Entity entity : client.world.getEntities()) {
-            if (entity instanceof ItemEntity || entity instanceof ClientPlayerEntity) entity.setGlowing(true);
+            if (entity instanceof ItemEntity) {
+                entity.setGlowing(client.player.inventory.offHand.isEmpty());
+            } else if (targets.contains(entity)) {
+                entity.setGlowing(true);
+            }
         }
     }
 
@@ -215,6 +173,20 @@ public class Quirk implements ModInitializer {
     void packetLand() { // TODO switch to water bucket
         if (client.player.fallDistance <= (client.player.isFallFlying() ? 1f : 2f)) return;
         client.player.networkHandler.sendPacket(new PlayerMoveC2SPacket(true));
+    }
+    void equip(int slot) {
+        if (client.player.inventory.selectedSlot != slot) {
+            inputLock = true;
+            press(client.options.keysHotbar[slot]);
+            inputQueue.add(() -> inputLock = false);
+        }
+    }
+
+    void equipWeapon() {
+        if (equip(item -> item.getItem() instanceof TridentItem)) return;
+        if (equip(item -> item.getItem() instanceof SwordItem)) return;
+        if (equip(item -> item.getItem() instanceof AxeItem)) return;
+        equip(0);
     }
 
     void wait(int ticks) {

@@ -5,8 +5,7 @@
   "mixins": [
   ],
   "client": [
-    "QuirkMixin",
-    "BlockMixin"
+    "QuirkMixin"
   ],
   "injectors": {
     "defaultRequire": 1
