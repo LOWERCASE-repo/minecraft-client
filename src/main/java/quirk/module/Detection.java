@@ -18,6 +18,7 @@ public class Detection {
 
     HashMap<BlockEntity, EyeOfEnderEntity> chests = new HashMap<>();
     HashMap<BlockPos, EyeOfEnderEntity> ores = new HashMap<>();
+    int scanRange = 32;
 
     public void tick() {
         for (Entity entity : Quirk.client.world.getEntities()) {
@@ -38,16 +39,14 @@ public class Detection {
                 chests.put(block, eye);
             }
         }
-        for (BlockEntity block : chests.keySet()) {
-            if (block.isRemoved()) Quirk.client.world.removeEntity(chests.get(block).getEntityId());
-        }
-        chests.entrySet().removeIf(i -> i.getKey().isRemoved());
-        for (EyeOfEnderEntity eye : chests.values()) {
-            eye.setGlowing(Quirk.client.player.getOffHandStack().getItem() instanceof SwordItem);
-        }
+        chests.entrySet().removeIf(i -> {
+            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() instanceof SwordItem);
+            boolean removed = i.getKey().isRemoved();
+            if (removed) Quirk.client.world.removeEntity(i.getValue().getEntityId());
+            return removed;
+        });
+        if (Quirk.client.options.keyChat.isPressed()) chests.clear();
     }
-
-    int scanRange = 32;
 
     void oreScan() {
         BlockPos playerPos = Quirk.client.player.getBlockPos();
@@ -57,7 +56,6 @@ public class Detection {
                     BlockPos pos = new BlockPos(x, y, z);
                     Block block = Quirk.client.world.getBlockState(pos).getBlock();
                     if (ores.keySet().contains(pos) || block != Blocks.DIAMOND_ORE) continue;
-                    System.out.println("ore found");
                     EyeOfEnderEntity eye = new EyeOfEnderEntity(Quirk.client.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
                     eye.setGlowing(true);
                     Quirk.client.world.addEntity(eye.getEntityId(), eye);
@@ -66,10 +64,12 @@ public class Detection {
             }
         }
         ores.entrySet().removeIf(i -> {
+            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() == Items.TORCH);
             boolean removed = Quirk.client.world.getBlockState(i.getKey()).getBlock() != Blocks.DIAMOND_ORE;
+            if (Math.abs(playerPos.getX() - i.getKey().getX()) > scanRange) removed = true;
+            if (Math.abs(playerPos.getZ() - i.getKey().getZ()) > scanRange) removed = true;
             if (removed) Quirk.client.world.removeEntity(ores.get(i.getKey()).getEntityId());
             return removed;
         });
-        for (EyeOfEnderEntity eye : ores.values()) eye.setGlowing(Quirk.client.player.getOffHandStack().getItem() == Items.TORCH);
     }
 }
