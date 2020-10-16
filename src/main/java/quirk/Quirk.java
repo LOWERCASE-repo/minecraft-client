@@ -2,38 +2,22 @@ package quirk;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EyeOfEnderEntity;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import quirk.module.*;
+import quirk.module.Destruction;
+import quirk.module.Detection;
+import quirk.module.Protection;
 import quirk.util.Input;
-
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.Objects;
 
 public class Quirk implements ModInitializer {
 
-    // TODO maintainability cap reached!! break into classes
-
     public static MinecraftClient client;
-    LinkedHashSet<BlockEntity> removedChests;
-    HashMap<BlockEntity, Integer> chests;
     Protection protection = new Protection();
     Detection detection = new Detection();
+    Destruction destruction = new Destruction();
 
     @Override
     public void onInitialize() {
-        removedChests = new LinkedHashSet<>();
-        chests = new HashMap<>();
         System.out.println("mod initialized!!");
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
@@ -43,45 +27,15 @@ public class Quirk implements ModInitializer {
         if (client.player == null) return;
 
         if (!Input.locked()) {
-            if (client.options.keyAttack.isPressed()) {
-                if (client.interactionManager.isBreakingBlock()) {
-                    BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
-                    if (!Input.equip(item -> item.getMiningSpeedMultiplier(state) > 1f)) Input.equip(0);
-                }
-            } else if (client.options.keyUse.isPressed()) {
-                Item hand = client.player.inventory.getMainHandStack().getItem();
-                if (hand instanceof TridentItem || hand instanceof ToolItem) Input.equip(item -> item.getItem() instanceof ShieldItem);
-            }
-            protection.tick();
+            // motion.tick();
+            packetLand();
             client.options.keySprint.setPressed(true);
+            destruction.tick();
+            protection.tick();
         }
 
         detection.tick();
-        chestScan();
-        packetLand();
         Input.tick();
-
-        for (BlockEntity block : chests.keySet()) {
-            if (block.isRemoved()) {
-                client.world.removeEntity(chests.get(block));
-                removedChests.add(block);
-            }
-        }
-        for (BlockEntity block : removedChests) chests.remove(block);
-        removedChests.clear();
-    }
-
-    void chestScan() {
-        for (BlockEntity block : client.world.blockEntities) {
-            if (!chests.containsKey(block) && block instanceof LootableContainerBlockEntity) {
-                BlockPos pos = block.getPos();
-                EyeOfEnderEntity eye = new EyeOfEnderEntity(client.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
-                int id = Objects.hash(pos.getX(), pos.getY(), pos.getZ());
-                eye.setGlowing(true);
-                client.world.addEntity(id, eye);
-                chests.put(block, id);
-            }
-        }
     }
 
     void packetLand() { // TODO switch to water bucket
