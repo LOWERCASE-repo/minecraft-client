@@ -80,7 +80,7 @@ public class Quirk implements ModInitializer {
     void entityScan() {
         for (Entity entity : client.world.getEntities()) {
             if (entity instanceof ItemEntity) {
-                entity.setGlowing(client.player.inventory.offHand == null);
+                entity.setGlowing(client.player.getOffHandStack().getItem() instanceof AirBlockItem);
             }
         }
     }
