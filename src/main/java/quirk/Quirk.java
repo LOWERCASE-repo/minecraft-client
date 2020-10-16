@@ -19,6 +19,7 @@ import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import quirk.module.Combat;
 import quirk.util.Input;
 
 import java.util.HashMap;
@@ -29,19 +30,17 @@ public class Quirk implements ModInitializer {
 
     // TODO maintainability cap reached!! break into classes
 
-    public static Quirk self;
-    public MinecraftClient client;
-    LinkedHashSet<Entity> targets; // TODO check behaviour when killed and unloaded, maybe swap map
+    public static MinecraftClient client;
     LinkedHashSet<BlockEntity> removedChests;
     HashMap<BlockEntity, Integer> chests;
+    Combat combat;
 
     @Override
     public void onInitialize() {
-        targets = new LinkedHashSet<>();
+        combat = new Combat();
         removedChests = new LinkedHashSet<>();
         chests = new HashMap<>();
         System.out.println("mod initialized!!");
-        self = this;
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
 
@@ -49,30 +48,25 @@ public class Quirk implements ModInitializer {
         this.client = client;
         if (client.player == null) return;
 
-        if (!Input.locked) {
+        if (!Input.locked()) {
             if (client.options.keyAttack.isPressed()) {
                 if (client.interactionManager.isBreakingBlock()) {
                     BlockState state = client.world.getBlockState(((BlockHitResult) client.crosshairTarget).getBlockPos());
                     if (!Input.equip(item -> item.getMiningSpeedMultiplier(state) > 1f)) Input.equip(0);
-                } else if (client.crosshairTarget instanceof EntityHitResult) {
-                    Input.equipWeapon();
-                    targets.add(((EntityHitResult) client.crosshairTarget).getEntity());
                 }
             } else if (client.options.keyUse.isPressed()) {
                 Item hand = client.player.inventory.getMainHandStack().getItem();
                 if (hand instanceof TridentItem || hand instanceof ToolItem) Input.equip(item -> item.getItem() instanceof ShieldItem);
             }
-            evalTarget();
+            combat.tick();
             client.options.keySprint.setPressed(true);
         }
 
         entityScan();
         chestScan();
         packetLand();
-
         Input.tick();
 
-        targets.removeIf(Objects::isNull);
         for (BlockEntity block : chests.keySet()) {
             if (block.isRemoved()) {
                 client.world.removeEntity(chests.get(block));
@@ -83,26 +77,10 @@ public class Quirk implements ModInitializer {
         removedChests.clear();
     }
 
-    void evalTarget() {
-        HitResult hit = client.crosshairTarget;
-        if (!(hit instanceof EntityHitResult)) return;
-        Entity entity = ((EntityHitResult) hit).getEntity();
-        if (targets.contains(entity) || entity instanceof Monster) Input.equipWeapon();
-        boolean charging = client.player.getAttackCooldownProgress(0f) < 1f;
-        if (charging && client.player.getPos().distanceTo(entity.getPos()) > 2f) return;
-        if (targets.contains(entity) || entity instanceof Monster) {
-            Input.locked = true;
-            Input.press(client.options.keyAttack);
-            Input.inputQueue.add(() -> Input.locked = false);
-        }
-    }
-
     void entityScan() {
         for (Entity entity : client.world.getEntities()) {
             if (entity instanceof ItemEntity) {
-                entity.setGlowing(client.player.inventory.offHand.isEmpty());
-            } else if (targets.contains(entity)) {
-                entity.setGlowing(true);
+                entity.setGlowing(client.player.inventory.offHand == null);
             }
         }
     }

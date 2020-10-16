@@ -15,9 +15,9 @@ import java.util.function.Predicate;
 
 public class Input {
 
-    public static boolean locked = false;
-    public static Queue<Runnable> inputQueue = new LinkedTransferQueue<>();
-    static final MinecraftClient client = Quirk.self.client;
+    public static boolean locked() { return inputQueue.peek() != null; }
+    static Queue<Runnable> inputQueue = new LinkedTransferQueue<>();
+    static final MinecraftClient client = Quirk.client;
 
     public static void tick() {
         Runnable input = inputQueue.poll();
@@ -26,9 +26,7 @@ public class Input {
 
     public static void equip(int slot) {
         if (client.player.inventory.selectedSlot != slot) {
-            locked = true;
             press(client.options.keysHotbar[slot]);
-            inputQueue.add(() -> locked = false);
         }
     }
 

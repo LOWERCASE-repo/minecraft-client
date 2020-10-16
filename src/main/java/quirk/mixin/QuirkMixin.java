@@ -21,17 +21,15 @@ public class QuirkMixin {
 
     @Inject(method = "onPlaySound", at = @At("HEAD"))
     void onPlaySound(PlaySoundS2CPacket playSoundS2CPacket, CallbackInfo callback) {
-        if (Input.locked) return;
-        MinecraftClient client = Quirk.self.client;
+        if (Input.locked()) return;
+        MinecraftClient client = Quirk.client;
         if (!(client.player.getMainHandStack().getItem() instanceof FishingRodItem)) return;
         if (!SoundEvents.ENTITY_FISHING_BOBBER_SPLASH.equals(playSoundS2CPacket.getSound())) return;
         Vec3d fishPos = client.player.fishHook.getPos();
-        Input.locked = true;
         Input.equip(item -> item.getItem() instanceof FishingRodItem);
         Input.press(client.options.keyUse);
         Input.wait(5 + (int) client.player.getPos().distanceTo(fishPos));
         Input.press(client.options.keyUse);
-        Input.inputQueue.add(() -> Input.locked = false);
     }
 
 //    @Inject(method = "onChunkData", at = @At("HEAD"))
