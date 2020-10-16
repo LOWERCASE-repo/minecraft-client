@@ -10,7 +10,7 @@ import quirk.util.Input;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 
-public class Combat {
+public class Protection {
 
     LinkedHashSet<Entity> targets = new LinkedHashSet<>();
 

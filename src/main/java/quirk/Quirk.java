@@ -9,17 +9,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EyeOfEnderEntity;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.mob.Monster;
 import net.minecraft.item.*;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket;
-import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import quirk.module.Combat;
+import quirk.module.*;
 import quirk.util.Input;
 
 import java.util.HashMap;
@@ -33,11 +27,11 @@ public class Quirk implements ModInitializer {
     public static MinecraftClient client;
     LinkedHashSet<BlockEntity> removedChests;
     HashMap<BlockEntity, Integer> chests;
-    Combat combat;
+    Protection protection = new Protection();
+    Detection detection = new Detection();
 
     @Override
     public void onInitialize() {
-        combat = new Combat();
         removedChests = new LinkedHashSet<>();
         chests = new HashMap<>();
         System.out.println("mod initialized!!");
@@ -58,11 +52,11 @@ public class Quirk implements ModInitializer {
                 Item hand = client.player.inventory.getMainHandStack().getItem();
                 if (hand instanceof TridentItem || hand instanceof ToolItem) Input.equip(item -> item.getItem() instanceof ShieldItem);
             }
-            combat.tick();
+            protection.tick();
             client.options.keySprint.setPressed(true);
         }
 
-        entityScan();
+        detection.tick();
         chestScan();
         packetLand();
         Input.tick();
@@ -75,14 +69,6 @@ public class Quirk implements ModInitializer {
         }
         for (BlockEntity block : removedChests) chests.remove(block);
         removedChests.clear();
-    }
-
-    void entityScan() {
-        for (Entity entity : client.world.getEntities()) {
-            if (entity instanceof ItemEntity) {
-                entity.setGlowing(client.player.getOffHandStack().getItem() instanceof AirBlockItem);
-            }
-        }
     }
 
     void chestScan() {
