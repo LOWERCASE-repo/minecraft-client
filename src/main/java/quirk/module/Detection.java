@@ -7,8 +7,7 @@ import net.minecraft.block.entity.LootableContainerBlockEntity;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EyeOfEnderEntity;
 import net.minecraft.entity.ItemEntity;
-import net.minecraft.item.Items;
-import net.minecraft.item.SwordItem;
+import net.minecraft.item.PickaxeItem;
 import net.minecraft.util.math.BlockPos;
 import quirk.Quirk;
 
@@ -22,9 +21,7 @@ public class Detection {
 
     public void tick() {
         for (Entity entity : Quirk.client.world.getEntities()) {
-            if (entity instanceof ItemEntity) {
-                entity.setGlowing(Quirk.client.player.getOffHandStack().isEmpty());
-            }
+            if (entity instanceof ItemEntity) entity.setGlowing(Quirk.client.player.getOffHandStack().isEmpty());
         }
         chestScan();
         oreScan();
@@ -40,7 +37,7 @@ public class Detection {
             }
         }
         chests.entrySet().removeIf(i -> {
-            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() instanceof SwordItem);
+            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().isEmpty());
             boolean removed = i.getKey().isRemoved();
             if (removed) Quirk.client.world.removeEntity(i.getValue().getEntityId());
             return removed;
@@ -64,7 +61,8 @@ public class Detection {
             }
         }
         ores.entrySet().removeIf(i -> {
-            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() == Items.TORCH);
+//            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() == Items.TORCH);
+            i.getValue().setGlowing(Quirk.client.player.getOffHandStack().getItem() instanceof PickaxeItem);
             boolean removed = Quirk.client.world.getBlockState(i.getKey()).getBlock() != Blocks.DIAMOND_ORE;
             if (Math.abs(playerPos.getX() - i.getKey().getX()) > scanRange) removed = true;
             if (Math.abs(playerPos.getZ() - i.getKey().getZ()) > scanRange) removed = true;
