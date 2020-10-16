@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import quirk.module.Destruction;
 import quirk.module.Detection;
+import quirk.module.Illumination;
 import quirk.module.Protection;
 import quirk.util.Input;
 
@@ -15,6 +16,7 @@ public class Quirk implements ModInitializer {
     Protection protection = new Protection();
     Detection detection = new Detection();
     Destruction destruction = new Destruction();
+    Illumination illumination = new Illumination();
 
     @Override
     public void onInitialize() {
@@ -33,7 +35,7 @@ public class Quirk implements ModInitializer {
             destruction.tick();
             protection.tick();
         }
-
+        illumination.tick();
         detection.tick();
         Input.tick();
     }
