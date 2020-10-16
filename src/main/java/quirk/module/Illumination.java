@@ -9,24 +9,17 @@ import quirk.Quirk;
 
 public class Illumination {
 
-    int dontCrashPlease = 0;
-
     ItemEntity item;
 
     public void tick() {
-//        if (dontCrashPlease % 20 != 0) {
-//            dontCrashPlease++;
-//            return;
-//        }
         if (item == null) {
-            Vec3d pos = Quirk.client.player.getPos();
+            Vec3d pos = Quirk.client.player.getPos().subtract(Quirk.client.player.getRotationVector());
             ItemStack stack = new ItemStack(Items.TORCH);
-            item = new ItemEntity(Quirk.client.world, pos.x, pos.y + 1.0, pos.z, stack);
-            item.setInvisible(true);
+            item = new ItemEntity(Quirk.client.world, pos.x, pos.y, pos.z, stack);
             Quirk.client.world.addEntity(item.getEntityId(), item);
             return;
         }
-        Vec3d pos = Quirk.client.player.getPos();
-        item.setPos(pos.x, pos.y + 1.0, pos.z);
+        Vec3d pos = Quirk.client.player.getPos().subtract(Quirk.client.player.getRotationVector());
+        item.setPos(pos.x, pos.y + 1.5, pos.z);
     }
 }

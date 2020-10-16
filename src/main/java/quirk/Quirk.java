@@ -31,7 +31,7 @@ public class Quirk implements ModInitializer {
         if (!Input.locked()) {
             // motion.tick();
             packetLand();
-            client.options.keySprint.setPressed(true);
+            client.options.keySprint.setPressed(!client.player.isFallFlying());
             destruction.tick();
             protection.tick();
         }
@@ -41,7 +41,7 @@ public class Quirk implements ModInitializer {
     }
 
     void packetLand() { // TODO switch to water bucket
-        if (client.player.fallDistance <= (client.player.isFallFlying() ? 1f : 2f)) return;
+        if (client.player.fallDistance <=  2f || client.player.isFallFlying()) return;
         client.player.networkHandler.sendPacket(new PlayerMoveC2SPacket(true));
     }
 }
