@@ -8,13 +8,6 @@
   "authors": [
     "LOWERCASE"
   ],
-  "contact": {
-    "homepage": "placeholder 1",
-    "sources": "placeholder 2"
-  },
-
-  "license": "",
-  "icon": "assets/quirk/icon.png",
 
   "environment": "*",
   "entrypoints": {

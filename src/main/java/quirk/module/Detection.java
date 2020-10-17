@@ -55,20 +55,16 @@ public class Detection {
 
     void oreScan() {
         BlockPos playerPos = Quirk.client.player.getBlockPos();
-//        Block debugBlock = Quirk.client.world.getBlockState(playerPos.down()).getBlock();
-//        System.out.println(debugBlock + " " + (debugBlock == Blocks.DIAMOND_ORE));
-        System.out.println((playerPos.getX() - scanRange)+" "+(playerPos.getX() + scanRange)+" "+(playerPos.getZ() - scanRange)+" "+(playerPos.getX() + scanRange));
-        for (int x = playerPos.getX() - scanRange; x <= playerPos.getX() + scanRange; x++) {
-            for (int z = playerPos.getZ() - scanRange; z <= playerPos.getX() + scanRange; z++) {
+        for (int x = -scanRange; x <= scanRange; x++) {
+            for (int z = -scanRange; z <= scanRange; z++) {
                 for (int y = 1; y < 16; y++) {
-                    BlockPos pos = new BlockPos(x, y, z);
+                    BlockPos pos = playerPos.west(x).north(z);
+                    pos = new BlockPos(pos.getX(), y, pos.getZ());
                     Block block = Quirk.client.world.getBlockState(pos).getBlock();
-                    System.out.println(block + " " + pos);
                     if (ores.keySet().contains(pos) || block != Blocks.DIAMOND_ORE) continue;
                     EyeOfEnderEntity eye = new EyeOfEnderEntity(Quirk.client.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
                     Quirk.client.world.addEntity(eye.getEntityId(), eye);
                     ores.put(pos, eye);
-                    System.out.println("ore found " + ores.size());
                 }
             }
         }
