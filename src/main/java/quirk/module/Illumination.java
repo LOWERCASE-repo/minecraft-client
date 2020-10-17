@@ -1,25 +1,26 @@
 package quirk.module;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import quirk.Quirk;
 
 public class Illumination {
 
-    ItemEntity item;
+    Entity entity;
 
     public void tick() {
-        if (item == null) {
-            Vec3d pos = Quirk.client.player.getPos().subtract(Quirk.client.player.getRotationVector());
+        if (entity == null || !Quirk.client.player.hasPassengers()) {
+            System.out.println("torch spawned");
+            Vec3d pos = Quirk.client.player.getPos();
             ItemStack stack = new ItemStack(Items.TORCH);
-            item = new ItemEntity(Quirk.client.world, pos.x, pos.y, pos.z, stack);
-            Quirk.client.world.addEntity(item.getEntityId(), item);
+            entity = new ItemEntity(Quirk.client.world, pos.x, pos.y, pos.z, stack);
+            entity.startRiding(Quirk.client.player, true);
+            entity.setInvisible(true);
+            Quirk.client.world.addEntity(entity.getEntityId(), entity);
             return;
         }
-        Vec3d pos = Quirk.client.player.getPos().subtract(Quirk.client.player.getRotationVector());
-        item.setPos(pos.x, pos.y + 1.5, pos.z);
     }
 }
