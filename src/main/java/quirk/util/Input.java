@@ -60,4 +60,19 @@ public class Input {
         });
         inputQueue.add(() -> KeyBinding.setKeyPressed(utilKey, false));
     }
+
+    public static void sneakPress(KeyBinding key) {
+        InputUtil.Key utilKey = InputUtil.fromTranslationKey(key.getBoundKeyTranslationKey());
+        InputUtil.Key utilSneak = InputUtil.fromTranslationKey(Quirk.client.options.keySneak.getBoundKeyTranslationKey());
+        inputQueue.add(() -> {
+            KeyBinding.setKeyPressed(utilSneak, true);
+            KeyBinding.onKeyPressed(utilSneak);
+            KeyBinding.setKeyPressed(utilKey, true);
+            KeyBinding.onKeyPressed(utilKey);
+        });
+        inputQueue.add(() -> {
+            KeyBinding.setKeyPressed(utilKey, false);
+            KeyBinding.setKeyPressed(utilSneak, false);
+        });
+    }
 }
