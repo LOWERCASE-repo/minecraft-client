@@ -3,12 +3,14 @@ package quirk;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.AirBlock;
+import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.command.argument.EntityAnchorArgumentType;
 import net.minecraft.item.Item;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
 import quirk.module.Destruction;
 import quirk.module.Detection;
 import quirk.module.Illumination;
@@ -50,16 +52,17 @@ public class Quirk implements ModInitializer {
     }
 
     void autoBucket() {
+        if (client.player.isFallFlying()) return;
         Item hand = Quirk.client.player.inventory.getMainHandStack().getItem();
         if (client.player.fallDistance > client.player.getSafeFallDistance()) {
-            if (!client.player.isFallFlying()) {
-                client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, client.player.getPos().add(client.player.getVelocity()));
-                client.options.keySneak.setPressed(true);
-                Input.equip(item -> item.getItem() == Items.WATER_BUCKET);
-            } else if (hand == Items.WATER_BUCKET) {
-                client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, client.player.getPos().add(client.player.getVelocity()));
-            }
+            client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, client.player.getPos().add(client.player.getVelocity()));
+            Input.equip(item -> item.getItem() == Items.WATER_BUCKET);
             if (hand == Items.WATER_BUCKET) Input.press(client.options.keyUse);
+            if (client.crosshairTarget instanceof BlockHitResult) {
+                BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
+                Block block = client.world.getBlockState(pos).getBlock();
+                if (!(block instanceof AirBlock)) client.options.keySneak.setPressed(true);
+            }
         } else if (hand == Items.BUCKET && client.options.keySneak.isPressed()) {
             Input.press(client.options.keyUse);
             client.options.keySneak.setPressed(false);
