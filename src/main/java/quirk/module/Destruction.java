@@ -15,6 +15,7 @@ public class Destruction {
         } else if (Quirk.client.options.keyUse.isPressed()) {
             Item hand = Quirk.client.player.inventory.getMainHandStack().getItem();
             if (hand instanceof SwordItem || hand instanceof AxeItem) Input.equip(item -> item.getItem() instanceof ShieldItem);
+            if (hand instanceof PickaxeItem) Input.equip(item -> item.getItem() instanceof BucketItem);
         }
     }
 }

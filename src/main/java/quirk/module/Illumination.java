@@ -18,7 +18,7 @@ public class Illumination {
             ItemStack stack = new ItemStack(Items.TORCH);
             entity = new ItemEntity(Quirk.client.world, pos.x, pos.y, pos.z, stack);
             entity.startRiding(Quirk.client.player, true);
-            entity.setInvisible(true);
+//            entity.setInvisible(true);
             Quirk.client.world.addEntity(entity.getEntityId(), entity);
             return;
         }

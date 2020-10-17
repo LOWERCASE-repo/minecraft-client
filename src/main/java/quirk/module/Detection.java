@@ -27,7 +27,6 @@ public class Detection {
             for (Entity entity : ores.values()) Quirk.client.world.removeEntity(entity.getEntityId());
             chests.clear();
             ores.clear();
-            System.out.println(chests.size() + " " + ores.size());
         }
         boolean enabled = Quirk.client.player.getOffHandStack().isEmpty();
         for (Entity entity : chests.values()) entity.setGlowing(enabled);
