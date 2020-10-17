@@ -57,8 +57,9 @@ public class Input {
         inputQueue.add(() -> {
             KeyBinding.setKeyPressed(utilKey, true);
             KeyBinding.onKeyPressed(utilKey);
+            KeyBinding.setKeyPressed(utilKey, false);
         });
-        inputQueue.add(() -> KeyBinding.setKeyPressed(utilKey, false));
+//        inputQueue.add(() -> );
     }
 
     public static void sneakPress(KeyBinding key) {
@@ -69,8 +70,6 @@ public class Input {
             KeyBinding.onKeyPressed(utilSneak);
             KeyBinding.setKeyPressed(utilKey, true);
             KeyBinding.onKeyPressed(utilKey);
-        });
-        inputQueue.add(() -> {
             KeyBinding.setKeyPressed(utilKey, false);
             KeyBinding.setKeyPressed(utilSneak, false);
         });
