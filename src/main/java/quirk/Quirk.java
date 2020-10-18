@@ -24,6 +24,7 @@ public class Quirk implements ModInitializer {
     Detection detection = new Detection();
     Destruction destruction = new Destruction();
     Illumination illumination = new Illumination();
+    boolean queueBucket = false;
 
     @Override
     public void onInitialize() {
@@ -34,7 +35,7 @@ public class Quirk implements ModInitializer {
     public void tick(MinecraftClient client) {
         this.client = client;
         if (client.player == null) return;
-        client.player.setInvisible(true);
+//        client.player.setInvisible(true);
         if (!Input.locked()) {
             destruction.tick();
             protection.tick();
@@ -55,17 +56,14 @@ public class Quirk implements ModInitializer {
         if (client.player.isFallFlying()) return;
         Item hand = Quirk.client.player.inventory.getMainHandStack().getItem();
         if (client.player.fallDistance > client.player.getSafeFallDistance()) {
-            client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, client.player.getPos().add(client.player.getVelocity()));
-            Input.equip(item -> item.getItem() == Items.WATER_BUCKET);
-            if (hand == Items.WATER_BUCKET) Input.press(client.options.keyUse);
-            if (client.crosshairTarget instanceof BlockHitResult) {
-                BlockPos pos = ((BlockHitResult) client.crosshairTarget).getBlockPos();
-                Block block = client.world.getBlockState(pos).getBlock();
-                if (!(block instanceof AirBlock)) client.options.keySneak.setPressed(true);
+            if (Input.equip(item -> item.getItem() == Items.WATER_BUCKET)) {
+                client.player.lookAt(EntityAnchorArgumentType.EntityAnchor.FEET, client.player.getPos().add(client.player.getVelocity()));
+                queueBucket = true;
+                if (hand == Items.WATER_BUCKET) Input.press(client.options.keyUse);
             }
-        } else if (hand == Items.BUCKET && client.options.keySneak.isPressed()) {
+        } else if (hand == Items.BUCKET && queueBucket) {
             Input.press(client.options.keyUse);
-            client.options.keySneak.setPressed(false);
+            queueBucket = false;
         }
     }
 }

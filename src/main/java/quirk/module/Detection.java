@@ -54,13 +54,16 @@ public class Detection {
 
     void oreScan() {
         BlockPos playerPos = Quirk.client.player.getBlockPos();
+//        System.out.println(scanRange +" scanrange "+ playerPos);
         for (int x = -scanRange; x <= scanRange; x++) {
             for (int z = -scanRange; z <= scanRange; z++) {
                 for (int y = 1; y < 16; y++) {
                     BlockPos pos = playerPos.west(x).north(z);
                     pos = new BlockPos(pos.getX(), y, pos.getZ());
                     Block block = Quirk.client.world.getBlockState(pos).getBlock();
+//                    System.out.println(block);
                     if (ores.keySet().contains(pos) || block != Blocks.DIAMOND_ORE) continue;
+//                    System.out.println("hello there");
                     EyeOfEnderEntity eye = new EyeOfEnderEntity(Quirk.client.world, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5);
                     Quirk.client.world.addEntity(eye.getEntityId(), eye);
                     ores.put(pos, eye);
